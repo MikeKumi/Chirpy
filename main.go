@@ -5,13 +5,23 @@ import (
 	"net/http"
 )
 
-func main() {
+func buildServeMux() *http.ServeMux {
 	serveMux := http.NewServeMux()
-	server := http.Server{Handler: serveMux, Addr: ":8080"}
+	serveMux.Handle("/", http.FileServer(http.Dir("web")))
+	return serveMux
+}
+
+func startServer(serveMux *http.ServeMux, port string) {
+	server := http.Server{Handler: serveMux, Addr: port}
 
 	err := server.ListenAndServe()
 
 	if err != nil {
 		fmt.Println(err)
 	}
+}
+
+func main() {
+	serveMux := buildServeMux()
+	startServer(serveMux, ":8080")
 }
