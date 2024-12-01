@@ -3,22 +3,30 @@ package main
 import (
 	"log"
 	"net/http"
+	"sync/atomic"
 )
 
 // buildServerMux returns the server mux that will be used to handle the file server and other endpoints
 func buildServeMux() *http.ServeMux {
+	const filepathRoot = "."
+	apiCfg := apiConfig{
+		fileserverHits: atomic.Int32{},
+	}
+
 	serveMux := http.NewServeMux()
-	serveMux.Handle("/app/", http.StripPrefix("/app", http.FileServer(http.Dir("."))))
-	serveMux.HandleFunc("/healthz", handleHealthz)
+	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/", http.FileServer(http.Dir(filepathRoot)))))
+	serveMux.HandleFunc("GET /healthz", handlerHealthz)
+	serveMux.HandleFunc("GET /metrics", apiCfg.handlerMetrics)
+	serveMux.HandleFunc("POST /reset", apiCfg.handlerReset)
 
 	return serveMux
 }
 
 // Method to be called when /healthz endpoint is hit
-func handleHealthz(w http.ResponseWriter, r *http.Request) {
+func handlerHealthz(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(200)
-	w.Write([]byte("OK"))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
 
 // startServer kicks off the process and logs any errors
@@ -31,6 +39,7 @@ func startServer(serveMux *http.ServeMux, port string) {
 }
 
 func main() {
+	const port = ":8080"
 	serveMux := buildServeMux()
-	startServer(serveMux, ":8080")
+	startServer(serveMux, port)
 }
