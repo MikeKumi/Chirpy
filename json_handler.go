@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"regexp"
 )
 
 func handlerChirp(w http.ResponseWriter, r *http.Request) {
@@ -25,21 +26,21 @@ func handlerChirp(w http.ResponseWriter, r *http.Request) {
 	}
 	// params is a struct with data populated successfully
 	if len(params.Body) <= 140 {
-		respondValid(w)
+		respondValid(w, params.Body)
 	} else {
 		respondInvalid(w)
 	}
 }
 
-func respondValid(w http.ResponseWriter) {
+func respondValid(w http.ResponseWriter, body string) {
 
 	type valid struct {
 		// the key will be the name of struct field unless you give it an explicit JSON tag
-		Valid bool `json:"valid"`
+		CleanedBody string `json:"cleaned_body"`
 	}
 
 	respBody := valid{
-		Valid: true,
+		CleanedBody: cleanJsonBody(body),
 	}
 	dat, err := json.Marshal(respBody)
 	if err != nil {
@@ -71,4 +72,17 @@ func respondInvalid(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
 	w.Write(dat)
+}
+
+func cleanJsonBody(body string) string {
+	replacements := [3]string{"kerfuffle", "sharbert", "fornax"}
+
+	for _, replacement := range replacements {
+		pattern := "(?i)" + regexp.QuoteMeta(replacement)
+		re := regexp.MustCompile(pattern)
+		body = re.ReplaceAllString(body, "****")
+
+	}
+
+	return body
 }
