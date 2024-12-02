@@ -15,7 +15,12 @@ func buildServeMux() *http.ServeMux {
 
 	serveMux := http.NewServeMux()
 	serveMux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/", http.FileServer(http.Dir(filepathRoot)))))
+
+	// API endpoints
 	serveMux.HandleFunc("GET /api/healthz", handlerHealthz)
+	serveMux.HandleFunc("POST /api/validate_chirp", handlerChirp)
+
+	// Admin endpoints
 	serveMux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	serveMux.HandleFunc("POST /admin/reset", apiCfg.handlerReset)
 
